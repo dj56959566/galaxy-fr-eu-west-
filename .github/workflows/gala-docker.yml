@@ -1,0 +1,50 @@
+name: Manual Update
+
+on:
+  workflow_dispatch:  # 仅手动触发
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Update README with timestamp
+        run: |
+          UTC_TIME=$(date -u +'%Y-%m-%d %H:%M:%S')
+          BJ_TIME=$(TZ='Asia/Shanghai' date +'%Y-%m-%d %H:%M:%S')
+          
+          TIMESTAMP_SECTION="\n## 🕒 Last Updated\n\n"
+          TIMESTAMP_SECTION+="**UTC**: \`$UTC_TIME\`  \n"
+          TIMESTAMP_SECTION+="**Beijing Time**: \`$BJ_TIME\`  \n\n"
+          TIMESTAMP_SECTION+="> ⚡ Timestamp updated manually via GitHub Actions\n"
+          
+          if grep -q "## 🕒 Last Updated" README.md; then
+            sed -i '/## 🕒 Last Updated/,/^## \|^# /{//!d}' README.md
+            sed -i '/## 🕒 Last Updated/d' README.md
+          fi
+          
+          echo -e "$TIMESTAMP_SECTION" >> README.md
+
+      - name: Auto commit changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Manual update via GitHub Actions"
+          commit_user_name: "github-actions[bot]"
+          commit_user_email: "github-actions[bot]@users.noreply.github.com"
+          file_pattern: README.md
+
+      - name: Send Telegram Notification
+        run: |
+          MESSAGE="📢 *Manual GitHub Action Triggered*\n\nRepository: \`${{ github.repository }}\`\n⏱ Update Time (UTC): $(date -u +'%Y-%m-%d %H:%M:%S')\n⚡ README timestamp manually updated."
+          
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TG_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TG_CHAT_ID }}" \
+            -d text="$MESSAGE" \
+            -d parse_mode="Markdown"
