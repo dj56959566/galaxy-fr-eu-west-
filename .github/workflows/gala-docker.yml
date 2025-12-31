@@ -2,7 +2,7 @@ name: 🌅 Daily Update
 
 on:
   schedule:
-    - cron: '5 1 * * *'  # 每天早上北京时间 09:05
+    - cron: '10 1 * * *'  # 每天早上北京时间 09:05
   workflow_dispatch:
   push:
     分支: [main]
